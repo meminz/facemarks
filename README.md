@@ -14,14 +14,13 @@ A Python package for detecting and analyzing 3D facial landmarks (facemarks) fro
 ## Requirements
 
 - Python 3.11
-- Dependencies are managed via `pyproject.toml`
 
 ## Installation
 
 Install the package via pip:
 
 ```bash
-pip install [facemarks]
+pip install facemarks
 ```
 
 ## Quick Start
