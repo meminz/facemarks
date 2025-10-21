@@ -16,7 +16,7 @@ def _detectorInit(detection_confidence=.5):
     FaceLandmarkerOptions = vision.FaceLandmarkerOptions
 
     options = FaceLandmarkerOptions(
-        base_options=BaseOptions( model_asset_path= "./face_landmarker_v2.task" ),
+        base_options=BaseOptions( model_asset_path= "./face_landmarker.task" ),
             min_face_detection_confidence = detection_confidence,
             running_mode = vision.RunningMode.IMAGE,
 

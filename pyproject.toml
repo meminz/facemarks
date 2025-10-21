@@ -3,7 +3,7 @@ name = "facemarks"
 version = "0.1.0"
 description = "Prediction of 3d facemarks on a 3d face mesh."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = "==3.11.*"
 dependencies = [
     "mediapipe>=0.10.21",
     "open3d==0.18.0",
