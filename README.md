@@ -11,18 +11,23 @@ A Python package for detecting and analyzing 3D facial landmarks (facemarks) fro
 - **Visualization**: Render meshes with detected landmarks overlaid
 - **Robust Detection**: Uses multiple camera projections for accurate 3D reconstruction
 
+## Requirements
+
+- Python 3.11
+- Dependencies are managed via `pyproject.toml`
+
 ## Installation
 
 Install the package via pip:
 
 ```bash
-pip install [package-name]
+pip install [facemarks]
 ```
 
 ## Quick Start
 
 ```python
-from [package-name] import (
+from facemarks import (
     import_mesh_and_setup,
     predict,
     save_facemarks_json,
@@ -32,7 +37,7 @@ from [package-name] import (
 # Import and setup your 3D mesh
 meshes = import_mesh_and_setup("path/to/mesh.obj")
 
-# Predict 3D facial landmarks (default: 100 projections)
+# Predict 3D facial landmarks
 result = predict(meshes, projections=100)
 
 # Extract results
@@ -149,11 +154,6 @@ The package uses a sophisticated multi-view approach to detect 3D facial landmar
 4. **Ray Casting**: Rays are cast from camera positions through detected 2D landmarks onto the 3D mesh
 5. **3D Reconstruction**: The intersection points are aggregated across all views to compute robust 3D landmark positions
 6. **Vertex Mapping**: Each landmark is mapped to the closest vertex on the original mesh
-
-## Requirements
-
-- Python 3.11
-- Dependencies are managed via `pyproject.toml`
 
 ## Use Cases
 
