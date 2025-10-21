@@ -1,6 +1,6 @@
 import open3d as o3d
 import json
-from .geometry_processing import _meshes_setup
+from ._geometry_processing import _meshes_setup
 
 def import_mesh_and_setup(filename):
     # assert os.path.exists(mesh_path), "The mesh\'s filepath should be a valid path."

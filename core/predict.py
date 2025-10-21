@@ -2,10 +2,10 @@ import open3d as o3d
 import numpy as np
 import scipy
 
-from .mp_utils import _detectorInit, _mpImage
-from .geometry_processing import _hpr_mesh_based, _perspective_rays_directions, _hit_coords
+from ._mp_utils import _detectorInit, _mpImage
+from ._geometry_processing import _hpr_mesh_based, _perspective_rays_directions, _hit_coords
 
-from .triangles import TRIANGLES
+from ._triangles import TRIANGLES
 IMG_SIZE = 720
 
 

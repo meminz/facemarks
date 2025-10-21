@@ -1,5 +1,6 @@
 import core
 import sys
+import numpy as np
 
 def main():
     print("Hello from facemarks!")
@@ -8,6 +9,9 @@ def main():
     prediction = core.predict(meshes, projections=100)
 
     core.render_result(meshes["original"], prediction["facemarks_3d"])
+
+    closest_vertices = np.asarray(meshes["original"].vertices)[prediction["closest_vertex_ids"]]
+    core.render_result(meshes["original"], closest_vertices)
 
 
 
