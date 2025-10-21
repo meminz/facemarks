@@ -14,6 +14,10 @@ A Python package for detecting and analyzing 3D facial landmarks (facemarks) fro
 ## Requirements
 
 - Python 3.11
+- MediaPipe Face Landmarker model (in working directory)
+    ```bash
+    wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
+    ```
 
 ## Installation
 
@@ -166,10 +170,6 @@ The package uses a sophisticated multi-view approach to detect 3D facial landmar
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[]
 
 ## Support
 
