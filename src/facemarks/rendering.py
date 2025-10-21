@@ -4,7 +4,7 @@ import os
 import subprocess
 
 
-def render_result(actual_mesh, facemarks):
+def render_result(mesh, facemarks):
     if os.environ["DISPLAY"] == ":99":
         print("Cannot render result with virtual display.\n")
         return
@@ -12,7 +12,7 @@ def render_result(actual_mesh, facemarks):
     facemarks_pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(facemarks))
     facemarks_pcd.colors = o3d.utility.Vector3dVector([ [1,0,1] for _ in range(len(facemarks)) ])
 
-    o3d.visualization.draw([actual_mesh, facemarks_pcd])
+    o3d.visualization.draw([mesh, facemarks_pcd])
 
 
 def _ensure_display():

@@ -20,11 +20,11 @@ def import_mesh_and_setup(filename):
     })
 
 
-def save_facemarks_json(input_path, landmarks_3d, closest_vertices_ids, json_path):
+def save_facemarks_json(input_path, prediction_result, json_path):
     data = {
         "model": file,
-        "normalized coordinates": landmarks_3d,
-        "closest vertex indexes": closest_vertices_ids
+        "normalized coordinates": prediction_result["landmarks_3d"],
+        "closest vertex indexes": prediction_result["closest_vertices_ids"]
     }
 
     with open(json_path, "w") as f:
