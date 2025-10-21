@@ -38,13 +38,13 @@ from facemarks import (
 meshes = import_mesh_and_setup("path/to/mesh.obj")
 
 # Predict 3D facial landmarks
-result = predict(meshes, projections=100)
+prediction_result = predict(meshes, projections=100)
 
 # Extract results
 facemarks_3d = result["facemarks_3d"]
 closest_vertex_ids = result["closest_vertex_ids"]
 
-# Save results to JSON
+# or Save results directly to JSON
 save_facemarks_json(
     "path/to/mesh.obj",
     prediction_result,
