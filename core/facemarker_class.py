@@ -1,8 +1,8 @@
 import os
 from predict import __predict
-import io_utils as io
-import rendering
-import geometry_processing as gp
+import .io_utils as io
+import .rendering
+import .geometry_processing as gp
 
 class Facemarker:
 

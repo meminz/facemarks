@@ -2,23 +2,20 @@ import open3d as o3d
 import numpy as np
 import scipy
 
-from mp_utils import *
-from geometry_processing import *
+from .mp_utils import _detectorInit, _mpImage
+from .geometry_processing import _hpr_mesh_based, _perspective_rays_directions, _hit_coords
 
-from triangles import TRIANGLES
+from .triangles import TRIANGLES
 IMG_SIZE = 720
 
 
 
-def predict(meshes, projections_number=100):
-    meshes = __import_mesh
-
-
+def predict(meshes, projections=100):
     actual_mesh, textured_mesh, mesh_t = meshes.values()
 
 
 ### PROJECTIONS AND LANDMARKS
-    detector = detectorInit()
+    detector = _detectorInit()
 
     vis = o3d.visualization.Visualizer()
     vis.create_window(visible=False, width=IMG_SIZE, height=IMG_SIZE)
@@ -33,8 +30,8 @@ def predict(meshes, projections_number=100):
     extr_mat = ctr.convert_to_pinhole_camera_parameters().extrinsic
 
 
-    y_rots = np.random.uniform(-np.pi/4, np.pi/4, 	projections_number)
-    x_rots = np.random.uniform(0,		 np.pi/8, 	projections_number)
+    y_rots = np.random.uniform(-np.pi/4, np.pi/4, 	projections)
+    x_rots = np.random.uniform(0,		 np.pi/8, 	projections)
     camera_rots = [ np.asarray(o3d.geometry.get_rotation_matrix_from_axis_angle([x,y,0])) for x,y in zip(x_rots, y_rots) ]
 
 
@@ -47,7 +44,7 @@ def predict(meshes, projections_number=100):
         
         img = (np.asarray(vis.capture_screen_float_buffer(True)) * 255 ).astype(np.uint8)
 
-        detection_result = detector.detect(mpImage(img))
+        detection_result = detector.detect(_mpImage(img))
         if not detection_result.face_landmarks: continue
 
     ### HPR
@@ -57,12 +54,12 @@ def predict(meshes, projections_number=100):
         )
         mp_mesh.translate( - mp_mesh.get_axis_aligned_bounding_box().get_center().numpy()  )
 
-        visible_points = hpr_mesh_based(mp_mesh, [0,0,1])
+        visible_points = _hpr_mesh_based(mp_mesh, [0,0,1])
 
         landmarks = [ [p.x,p.y,0] for p in detection_result.face_landmarks[0] ]
         landmarks = np.asarray(landmarks)[visible_points]
 
-        persp_rays = perspective_rays_directions(landmarks, IMG_SIZE, intr_mat)
+        persp_rays = _perspective_rays_directions(landmarks, IMG_SIZE, intr_mat)
 
         world_rays = (persp_rays * [1,-1,-1]) @ np.linalg.inv(camera_r)
 
@@ -84,7 +81,7 @@ def predict(meshes, projections_number=100):
                 )
             )
 
-    if len(views) < projections_number/2: print(f"Error detecting face."); return
+    if len(views) < projections/2: print(f"Error detecting face."); return
 
 
 ### RAYCASTING
@@ -97,7 +94,7 @@ def predict(meshes, projections_number=100):
 
         if len(rays)==0: print(f"No rays for landmark {i}."); continue
         ans = scene.cast_rays(rays)
-        hits = hit_coords(ans,rays)
+        hits = _hit_coords(ans,rays)
         if len(hits)==0: print(f"No hits for landmark {i}."); continue
 
         distances = scipy.spatial.distance.cdist(hits, hits)
@@ -107,7 +104,10 @@ def predict(meshes, projections_number=100):
 
 
     vertices_distances = scipy.spatial.distance.cdist(np.asarray(landmarks_3d), np.asarray(actual_mesh.vertices))
-    closest_vertices_ids = [ int(np.argmin(x)) for x in vertices_distances ]
+    closest_vertex_ids = [ int(np.argmin(x)) for x in vertices_distances ]
 
 
-    return landmarks_3d, closest_vertices_ids
+    return {
+        "facemarks_3d": landmarks_3d,
+        "closest_vertex_ids": closest_vertex_ids
+    }

@@ -3,8 +3,19 @@ import open3d as o3d
 import os
 import subprocess
 
-def ensure_display():
-    # If DISPLAY is already set, assume a real display is available
+
+def render_result(actual_mesh, facemarks):
+    if os.environ["DISPLAY"] == ":99":
+        print("Cannot render result with virtual display.\n")
+        return
+
+    facemarks_pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(facemarks))
+    facemarks_pcd.colors = o3d.utility.Vector3dVector([ [1,0,1] for _ in range(len(facemarks)) ])
+
+    o3d.visualization.draw([actual_mesh, facemarks_pcd])
+
+
+def _ensure_display():
     if "DISPLAY" in os.environ and os.environ["DISPLAY"]:
         print(f"Using existing display {os.environ['DISPLAY']}")
         return
@@ -27,15 +38,3 @@ def ensure_display():
             "Xvfb is not installed, and no display is available. "
             "Install Xvfb (e.g., `sudo apt install xvfb`) or run with a display."
         )
-
-
-def render_result(actual_mesh, closest_vertices_ids):
-    if os.environ["DISPLAY"] == ":99":
-        print("Cannot display with virtual display, ignoring --render flag\n")
-        break
-
-    closest_vertices = np.asarray(actual_mesh.vertices)[closest_vertices_ids]
-    closest_vertices_pcd = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(closest_vertices))
-    closest_vertices_pcd.colors = o3d.utility.Vector3dVector([[1,0,1] for _ in range(len(closest_vertices))])
-
-    o3d.visualization.draw([actual_mesh, closest_vertices_pcd])

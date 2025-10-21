@@ -7,11 +7,11 @@ from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 
 
-def mpImage(img):
+def _mpImage(img):
     return mp.Image(image_format=mp.ImageFormat.SRGB, data=img)
 
 
-def detectorInit(detection_confidence=.5):
+def _detectorInit(detection_confidence=.5):
     BaseOptions = mp.tasks.BaseOptions
     FaceLandmarkerOptions = vision.FaceLandmarkerOptions
 
@@ -27,6 +27,7 @@ def detectorInit(detection_confidence=.5):
     return vision.FaceLandmarker.create_from_options(options)
 
 
+### TODO remove
 def draw_landmarks_on_image(rgb_image, detection_result):
     face_landmarks_list = detection_result.face_landmarks
     annotated_image = np.copy(rgb_image)

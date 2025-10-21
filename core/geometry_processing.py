@@ -2,7 +2,7 @@ import open3d as o3d
 import numpy as np
 
 
-def __meshes_setup(meshes, offset=[0,0,0], rotation=None):
+def _meshes_setup(meshes, offset=[0,0,0], rotation=None):
     actual_mesh, textured_mesh, _ = meshes.values()
 
     scale = max(textured_mesh.get_max_bound() - textured_mesh.get_min_bound())
@@ -25,7 +25,7 @@ def __meshes_setup(meshes, offset=[0,0,0], rotation=None):
     return meshes
 
 
-def __hit_coords(ans, np_rays):
+def _hit_coords(ans, np_rays):
 	hit_coords = []
 
 	for i,r in enumerate(np_rays):
@@ -38,7 +38,7 @@ def __hit_coords(ans, np_rays):
 
 
 
-def __hpr_mesh_based(mesh: o3d.t.geometry.TriangleMesh, eye=[0,0,0]):
+def _hpr_mesh_based(mesh: o3d.t.geometry.TriangleMesh, eye=[0,0,0]):
     scene = o3d.t.geometry.RaycastingScene()
     scene.add_triangles(mesh)
 
@@ -53,7 +53,7 @@ def __hpr_mesh_based(mesh: o3d.t.geometry.TriangleMesh, eye=[0,0,0]):
     return np.asarray(visibility_mask).nonzero()[0]
 
 
-def __perspective_rays_directions(img_landmarks, size, intrinsic):
+def _perspective_rays_directions(img_landmarks, size, intrinsic):
     return np.asarray( list(
         map(lambda x:x/np.linalg.norm(x),
             [np.linalg.inv(intrinsic) @ np.asarray([p[0]*size, p[1]*size, 1])
@@ -61,7 +61,7 @@ def __perspective_rays_directions(img_landmarks, size, intrinsic):
             )
         ) )
 
-def __align_vector_to_xz(eyes_landmarks):
+def _align_vector_to_xz(eyes_landmarks):
     eyes_vec = eyes_landmarks[1] - eyes_landmarks[0]
     eyes_vec /= np.linalg.norm(eyes_vec)
 
@@ -69,7 +69,7 @@ def __align_vector_to_xz(eyes_landmarks):
     return np.asarray( o3d.geometry.get_rotation_matrix_from_axis_angle([0,0,-angle]) )
 
 
-def __align_vector_to_xaxis(eyes_landmarks):
+def _align_vector_to_xaxis(eyes_landmarks):
     eyes_vec = eyes_landmarks[1] - eyes_landmarks[0]
     eyes_vec /= np.linalg.norm(eyes_vec)
 
@@ -86,26 +86,3 @@ def __align_vector_to_xaxis(eyes_landmarks):
     angle = np.arccos( np.clip( np.dot(eyes_vec, Xaxis), -1, 1  ) )
 
     return np.asarray( o3d.geometry.get_rotation_matrix_from_axis_angle([0,0,-angle]) )
-
-
-# TODO remove
-def visualizable_rays(rays, origin_for_all=None, lenght=1):
-    points = np.array()
-    lines = np.array()
-
-    for j, ray in enumerate(rays):
-        if origin_for_all is None:
-            origin = ray[:3]
-            direction = ray[3:]
-        else:
-            origin = origin_for_all
-            direction = ray
-        end_point = origin + direction * lenght
-        points.append(origin)
-        points.append(end_point)
-        lines.append([j * 2, j * 2 + 1])
-    line_set = o3d.geometry.LineSet()
-    line_set.points = o3d.utility.Vector3dVector(points)
-    line_set.lines = o3d.utility.Vector2iVector(lines)
-
-    return line_set
