@@ -1,17 +1,17 @@
-import core
+import facemarks
 import sys
 import numpy as np
 
 def main():
     print("Hello from facemarks!")
 
-    meshes = core.import_mesh_and_setup(sys.argv[1])
-    prediction = core.predict(meshes, projections=100)
+    meshes = facemarks.import_mesh_and_setup(sys.argv[1])
+    prediction = facemarks.predict(meshes, projections=100)
 
-    core.render_result(meshes["original"], prediction["facemarks_3d"])
+    facemarks.render_result(meshes["original"], prediction["facemarks_3d"])
 
     closest_vertices = np.asarray(meshes["original"].vertices)[prediction["closest_vertex_ids"]]
-    core.render_result(meshes["original"], closest_vertices)
+    facemarks.render_result(meshes["original"], closest_vertices)
 
 
 
