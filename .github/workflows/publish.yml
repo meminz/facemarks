@@ -1,0 +1,148 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: CI performs the version bump
+        env:
+          TARGET: "${{ github.ref_name }}"
+        run: |
+          set -euo pipefail
+          VERSION="${TARGET#v}"
+          CURRENT="$(uv version --short)"
+
+          parse() {
+            local v="$1"
+            if [[ "$v" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)((alpha|beta|rc)[0-9]+)?$ ]]; then
+              MAJ="${BASH_REMATCH[1]}"; MIN="${BASH_REMATCH[2]}"; PAT="${BASH_REMATCH[3]}"
+              PRE="${BASH_REMATCH[4]:-}"
+            else
+              echo "Unsupported version format: $v" >&2
+              exit 1
+            fi
+          }
+
+          parse "$VERSION"; T_MAJ=$MAJ; T_MIN=$MIN; T_PAT=$PAT; T_PRE=$PRE
+          parse "$CURRENT"; C_MAJ=$MAJ; C_MIN=$MIN; C_PAT=$PAT; C_PRE=$PRE
+
+          if [[ "$VERSION" == "$CURRENT" ]]; then
+            echo "Current version is already $VERSION; tag must be a newer version" >&2
+            exit 1
+          fi
+          if [[ "$C_MAJ" -gt "$T_MAJ" ]] \
+             || { [[ "$C_MAJ" -eq "$T_MAJ" ]] && [[ "$C_MIN" -gt "$T_MIN" ]]; } \
+             || { [[ "$C_MAJ" -eq "$T_MAJ" ]] && [[ "$C_MIN" -eq "$T_MIN" ]] && [[ "$C_PAT" -gt "$T_PAT" ]]; }; then
+            echo "Version $VERSION is not newer than current $CURRENT" >&2
+            exit 1
+          fi
+
+          SPECS=()
+          if [[ "$T_MAJ" -gt "$C_MAJ" ]]; then
+            SPECS+=(major)
+          elif [[ "$T_MIN" -gt "$C_MIN" ]]; then
+            SPECS+=(minor)
+          elif { [[ "$T_MAJ" -eq "$C_MAJ" ]] && [[ "$T_MIN" -eq "$C_MIN" ]] && [[ "$T_PAT" -gt "$C_PAT" ]]; }; then
+            SPECS+=(patch)
+          fi
+
+          if [[ -n "$T_PRE" ]]; then
+            if [[ -z "$C_PRE" ]]; then
+              SPECS+=("${T_PRE%%[0-9]*}")
+            else
+              if [[ "${T_PRE%%[0-9]*}" != "${C_PRE%%[0-9]*}" ]]; then
+                echo "Pre-release $T_PRE is not compatible with current $CURRENT" >&2
+                exit 1
+              fi
+              SPECS+=("${T_PRE%%[0-9]*}")
+            fi
+          elif [[ -n "$C_PRE" ]]; then
+            SPECS+=(stable)
+          fi
+
+          echo "Bumping $CURRENT -> $VERSION with: ${SPECS[*]}"
+          BUMPARGS=()
+          for s in "${SPECS[@]}"; do BUMPARGS+=(--bump "$s"); done
+          uv version "${BUMPARGS[@]}" --no-sync
+
+          NEW="$(uv version --short)"
+          echo "Resulting version: $NEW"
+          if [[ "$NEW" != "$VERSION" ]]; then
+            echo "Bump produced $NEW, expected $VERSION from tag $TARGET" >&2
+            exit 1
+          fi
+
+      - name: Reject already-published version
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          if curl -fsSL "https://pypi.org/pypi/facemarks/$VERSION/json" >/dev/null 2>&1; then
+            echo "Version $VERSION already exists on PyPI" >&2
+            exit 1
+          fi
+          echo "Version $VERSION is not on PyPI yet"
+
+      - name: Build distributions
+        run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: version-files
+          path: |
+            pyproject.toml
+            uv.lock
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
+  sync-master:
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Switch to master
+        run: git switch master
+      - uses: actions/download-artifact@v4
+        with:
+          name: version-files
+      - name: Commit and push version sync
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pyproject.toml uv.lock; then
+            echo "master is already in sync"
+            exit 0
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "Bump version to ${VERSION}"
+          git push origin master
