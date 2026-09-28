@@ -1,3 +1,4 @@
+# list of MediPipe face mesh triangles
 TRIANGLES = [
     [416,364,367],
     [200,428,199],

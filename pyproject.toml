@@ -1,13 +1,46 @@
 [project]
 name = "facemarks"
-version = "0.1.0"
+version = "0.2.0"
 description = "Prediction of 3d facemarks on a 3d face mesh."
 readme = "README.md"
 requires-python = "==3.11.*"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Samuele Bertinelli" }
+]
+keywords = [
+    "face",
+    "landmarks",
+    "facemarks",
+    "mediapipe",
+    "open3d",
+    "3d-mesh",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
 dependencies = [
     "mediapipe>=0.10.21",
     "open3d==0.18.0",
+    'numpy<2.0'
 ]
+
+[project.urls]
+Homepage = "https://github.com/meminz/facemarks"
+Repository = "https://github.com/meminz/facemarks"
+Issues = "https://github.com/meminz/facemarks/issues"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]

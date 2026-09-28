@@ -6,7 +6,7 @@ A Python package for detecting and analyzing 3D facial landmarks (facemarks) fro
 ## Features
 
 - **Mesh Import**: Import 3D facial meshes with texture support via Open3D
-- **3D Landmark Prediction**: Detect 478 facial landmarks in 3D space using multi-view projection and raycasting
+- **3D Landmark Prediction**: Detect up to 478 facial landmarks in 3D space using multi-view projection and raycasting
 - **JSON Export**: Save predicted facemarks with normalized coordinates and closest vertex indices
 - **Visualization**: Render meshes with detected landmarks overlaid
 - **Robust Detection**: Uses multiple camera projections for accurate 3D reconstruction
@@ -14,10 +14,11 @@ A Python package for detecting and analyzing 3D facial landmarks (facemarks) fro
 ## Requirements
 
 - Python 3.11
-- MediaPipe Face Landmarker model (in working directory)
+- MediaPipe Face Landmarker model, in the working directory from which you run `predict()`:
     ```bash
-    wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
+    wget -O face_landmarker.task https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task
     ```
+  If the file is missing, `predict()` raises an error with this command.
 
 ## Installation
 
@@ -44,8 +45,8 @@ meshes = import_mesh_and_setup("path/to/mesh.obj")
 prediction_result = predict(meshes, projections=100)
 
 # Extract results
-facemarks_3d = result["facemarks_3d"]
-closest_vertex_ids = result["closest_vertex_ids"]
+facemarks_3d = prediction_result["facemarks_3d"]
+closest_vertex_ids = prediction_result["closest_vertex_ids"]
 
 # or Save results directly to JSON
 save_facemarks_json(
@@ -82,25 +83,25 @@ meshes = import_mesh_and_setup("face_model.obj")
 
 ### `predict(meshes, projections=100)`
 
-Predicts 3D facial landmarks from the provided mesh data using multi-view projection and raycasting. Detects 478 facial landmarks in 3D space.
+Predicts 3D facial landmarks from the provided mesh data using multi-view projection and raycasting. Detects up to 478 facial landmarks in 3D space; landmarks that could not be reconstructed are kept as `None` so every result is a fixed 478-slot list.
 
 **Parameters:**
 - `meshes` (dict): Mesh data object returned from `import_mesh_and_setup()`
 - `projections` (int, optional): Number of camera projections to use for landmark detection. Default is 100. More projections increase accuracy but take longer.
 
 **Returns:**
-- `dict`: Dictionary containing:
-  - `"facemarks_3d"` (list): List of 3D coordinates for detected facial landmarks
-  - `"closest_vertex_ids"` (list): Indices of the closest mesh vertices to each landmark
+- `dict` (or `None`): Dictionary containing:
+  - `"facemarks_3d"` (list): 478 entries — 3D coordinates `[x, y, z]`, or `None` where a landmark could not be reconstructed
+  - `"closest_vertex_ids"` (list): Index of the closest mesh vertex to each landmark (same length, `None` in the same slots). Position `n` always refers to facemark `n`.
 
 **Example:**
 ```python
-result = predict(meshes, projections=150)
-landmarks = result["facemarks_3d"]
-vertex_ids = result["closest_vertex_ids"]
+prediction_result = predict(meshes, projections=150)
+landmarks = prediction_result["facemarks_3d"]
+vertex_ids = prediction_result["closest_vertex_ids"]
 ```
 
-**Note:** The function uses random camera rotations for robust multi-view detection. If fewer than half of the requested projections successfully detect a face, an error message is printed.
+**Note:** Camera angles are chosen at random, so results vary slightly between runs, and different runs may resolve different subsets of the 478 facemarks. If no projection detects a face, `predict()` prints an error and returns `None`.
 
 ---
 
@@ -117,10 +118,12 @@ Exports predicted facial landmarks to a JSON file with normalized coordinates an
 ```json
 {
     "model": "path/to/mesh.obj",
-    "normalized coordinates": [[x, y, z], ...],
-    "closest vertex indexes": [idx1, idx2, ...]
+    "normalized coordinates": [[x, y, z], null, ...],
+    "closest vertex indexes": [idx, null, ...]
 }
 ```
+
+Both coordinate arrays have one entry per facemark (478). Landmarks that could not be reconstructed are written as `null`, so position `n` always refers to facemark `n`.
 
 **Example:**
 ```python
@@ -143,10 +146,10 @@ Visualizes the mesh with predicted facial landmarks overlaid as magenta points.
 
 **Example:**
 ```python
-render_result(meshes["original"], result["facemarks_3d"])
+render_result(meshes["original"], prediction_result["facemarks_3d"])
 ```
 
-**Note:** This function requires a display environment. It will not work in headless environments with virtual displays.
+**Note:** Requires a graphical display. In headless environments (unset `DISPLAY` or a virtual `:99` display) it prints a message and returns without rendering.
 
 ## How It Works
 
@@ -154,9 +157,9 @@ The package uses a sophisticated multi-view approach to detect 3D facial landmar
 
 1. **Multi-View Projection**: The mesh is rendered from multiple random camera angles (default: 100 views)
 2. **2D Landmark Detection**: MediaPipe Face Landmark detection is applied to each rendered view
-4. **Ray Casting**: Rays are cast from camera positions through detected 2D landmarks onto the 3D mesh
-5. **3D Reconstruction**: The intersection points are aggregated across all views to compute robust 3D landmark positions
-6. **Vertex Mapping**: Each landmark is mapped to the closest vertex on the original mesh
+3. **Ray Casting**: Rays are cast from camera positions through detected 2D landmarks onto the 3D mesh
+4. **3D Reconstruction**: The intersection points are aggregated across all views to compute robust 3D landmark positions
+5. **Vertex Mapping**: Each landmark is mapped to the closest vertex on the original mesh
 
 ## Use Cases
 
@@ -173,4 +176,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Support
 
-For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/[username]/[repo-name]).
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/meminz/facemarks).

@@ -17,7 +17,7 @@ def _meshes_setup(meshes, offset=[0,0,0], rotation=None):
     actual_mesh.translate( - actual_mesh.get_axis_aligned_bounding_box().get_center() - offset )
 
     mesh_t = o3d.t.geometry.TriangleMesh(
-        device=o3d.core.Device("CUDA:1" if o3d.core.cuda.is_available() else "CPU:0")
+        device=o3d.core.Device("CUDA:0" if o3d.core.cuda.is_available() else "CPU:0")
     ).from_legacy(textured_mesh)
 
     meshes.update({"tensor": mesh_t})

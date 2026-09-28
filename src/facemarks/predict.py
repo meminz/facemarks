@@ -11,7 +11,9 @@ IMG_SIZE = 720
 
 
 def predict(meshes, projections=100):
-    actual_mesh, textured_mesh, mesh_t = meshes.values()
+    actual_mesh = meshes["original"]
+    textured_mesh = meshes["textured"]
+    mesh_t = meshes["tensor"]
 
 
 ### PROJECTIONS AND LANDMARKS
@@ -37,6 +39,8 @@ def predict(meshes, projections=100):
 
     views = {i:[] for i in range(478)}
 
+    successful_detections = 0
+
     for camera_r in camera_rots:
         ctr.set_front(camera_r @ [0,0,1])
         ctr.set_lookat([0,0,0])
@@ -46,6 +50,8 @@ def predict(meshes, projections=100):
 
         detection_result = detector.detect(_mpImage(img))
         if not detection_result.face_landmarks: continue
+
+        successful_detections += 1
 
     ### HPR
         mp_mesh = o3d.t.geometry.TriangleMesh(
@@ -66,11 +72,6 @@ def predict(meshes, projections=100):
         vis.update_renderer()
         extr_mat = ctr.convert_to_pinhole_camera_parameters().extrinsic
 
-
-        camera_pos_cam = np.array([0, 0, 0, 1])
-        camera_pos_world = np.linalg.inv(extr_mat) @ camera_pos_cam
-        camera_pos = camera_pos_world[:3]
-
         camera_pos = camera_r @ (np.asarray([0,0,1]) * extr_mat[2,3])
 
         for i,r in zip(visible_points, world_rays):
@@ -81,7 +82,7 @@ def predict(meshes, projections=100):
                 )
             )
 
-    if len(views) < projections/2: print(f"Error detecting face."); return
+    if successful_detections == 0: print(f"Error detecting face."); return
 
 
 ### RAYCASTING
@@ -92,19 +93,34 @@ def predict(meshes, projections=100):
 
     for i,rays in views.items():
 
-        if len(rays)==0: print(f"No rays for landmark {i}."); continue
+        if len(rays)==0:
+            print(f"No rays for landmark {i}.")
+            landmarks_3d.append(None)
+            continue
+
         ans = scene.cast_rays(rays)
         hits = _hit_coords(ans,rays)
-        if len(hits)==0: print(f"No hits for landmark {i}."); continue
+        if len(hits)==0:
+            print(f"No hits for landmark {i}.")
+            landmarks_3d.append(None)
+            continue
 
         distances = scipy.spatial.distance.cdist(hits, hits)
         means = [np.square(np.mean(x)) for x in distances]
 
         landmarks_3d.append( hits[np.argmin(means)].tolist() )
 
+    assert len(landmarks_3d) == len(views), "facemark slots lost during raycasting."
 
-    vertices_distances = scipy.spatial.distance.cdist(np.asarray(landmarks_3d), np.asarray(actual_mesh.vertices))
-    closest_vertex_ids = [ int(np.argmin(x)) for x in vertices_distances ]
+    resolved = [k for k, coords in enumerate(landmarks_3d) if coords is not None]
+    closest_vertex_ids = [None] * len(landmarks_3d)
+
+    if resolved:
+        vertices_distances = scipy.spatial.distance.cdist(
+            np.asarray([landmarks_3d[k] for k in resolved]), np.asarray(actual_mesh.vertices)
+        )
+        for k, vertex_id in zip(resolved, np.argmin(vertices_distances, axis=1).tolist()):
+            closest_vertex_ids[k] = vertex_id
 
 
     return {
