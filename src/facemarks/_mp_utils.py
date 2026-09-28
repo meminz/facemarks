@@ -5,7 +5,7 @@ from mediapipe.tasks.python import vision
 MODEL_FILENAME = "face_landmarker.task"
 MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task"
 
-def _mpImage(img):
+def _mp_image(img):
     return mp.Image(image_format=mp.ImageFormat.SRGB, data=img)
 
 

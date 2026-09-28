@@ -1,5 +1,6 @@
 import open3d as o3d
 import numpy as np
+import scipy
 
 
 def _meshes_setup(meshes, offset=[0,0,0], rotation=None):
@@ -37,6 +38,19 @@ def _hit_coords(ans, np_rays):
 	return np.asarray(hit_coords)
 
 
+def _consensus_point(hits):
+	distances = scipy.spatial.distance.cdist(hits, hits)
+	means = [np.square(np.mean(x)) for x in distances]
+
+	return hits[np.argmin(means)]
+
+
+def _closest_vertex_ids(vertices, points):
+	vertices_distances = scipy.spatial.distance.cdist(np.asarray(points), np.asarray(vertices))
+
+	return np.argmin(vertices_distances, axis=1).tolist()
+
+
 
 def _hpr_mesh_based(mesh: o3d.t.geometry.TriangleMesh, eye=[0,0,0]):
     scene = o3d.t.geometry.RaycastingScene()
@@ -60,29 +74,3 @@ def _perspective_rays_directions(img_landmarks, size, intrinsic):
              for p in img_landmarks]
             )
         ) )
-
-def _align_vector_to_xz(eyes_landmarks):
-    eyes_vec = eyes_landmarks[1] - eyes_landmarks[0]
-    eyes_vec /= np.linalg.norm(eyes_vec)
-
-    angle = np.arctan2(eyes_vec[1], eyes_vec[0])
-    return np.asarray( o3d.geometry.get_rotation_matrix_from_axis_angle([0,0,-angle]) )
-
-
-def _align_vector_to_xaxis(eyes_landmarks):
-    eyes_vec = eyes_landmarks[1] - eyes_landmarks[0]
-    eyes_vec /= np.linalg.norm(eyes_vec)
-
-    Xaxis = np.array([1,0,0])
-
-    rotation_axis = np.dot(eyes_vec, Xaxis)
-    axis_norm = np.linalg.norm(rotation_axis)
-
-    if np.linalg.norm(rotation_axis) <= 1e-8:
-        return np.eye(3)
-
-    rotation_axis /= axis_norm
-
-    angle = np.arccos( np.clip( np.dot(eyes_vec, Xaxis), -1, 1  ) )
-
-    return np.asarray( o3d.geometry.get_rotation_matrix_from_axis_angle([0,0,-angle]) )
