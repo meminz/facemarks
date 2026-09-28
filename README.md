@@ -44,19 +44,23 @@ meshes = import_mesh_and_setup("path/to/mesh.obj")
 # Predict 3D facial landmarks
 prediction_result = predict(meshes, projections=100)
 
-# Extract results
-facemarks_3d = prediction_result["facemarks_3d"]
-closest_vertex_ids = prediction_result["closest_vertex_ids"]
+if prediction_result is None:
+    print("No face detected; nothing to export or render.")
+else:
+    # Extract results
+    facemarks_3d = prediction_result["facemarks_3d"]
+    closest_vertex_ids = prediction_result["closest_vertex_ids"]
 
-# or Save results directly to JSON
-save_facemarks_json(
-    "path/to/mesh.obj",
-    prediction_result,
-    "output/facemarks.json"
-)
+    # Save results directly to JSON (unreconstructed landmarks become null)
+    save_facemarks_json(
+        "path/to/mesh.obj",
+        prediction_result,
+        "output/facemarks.json"
+    )
 
-# Visualize the results
-render_result(meshes["textured"], facemarks_3d)
+    # Visualize only the reconstructed landmarks
+    detected = [coords for coords in facemarks_3d if coords is not None]
+    render_result(meshes["textured"], detected)
 ```
 
 ## API Reference
@@ -97,8 +101,9 @@ Predicts 3D facial landmarks from the provided mesh data using multi-view projec
 **Example:**
 ```python
 prediction_result = predict(meshes, projections=150)
-landmarks = prediction_result["facemarks_3d"]
-vertex_ids = prediction_result["closest_vertex_ids"]
+if prediction_result is not None:
+    landmarks = prediction_result["facemarks_3d"]
+    vertex_ids = prediction_result["closest_vertex_ids"]
 ```
 
 **Note:** Camera angles are chosen at random, so results vary slightly between runs, and different runs may resolve different subsets of the 478 facemarks. If no projection detects a face, `predict()` prints an error and returns `None`.
@@ -146,10 +151,13 @@ Visualizes the mesh with predicted facial landmarks overlaid as magenta points.
 
 **Example:**
 ```python
-render_result(meshes["original"], prediction_result["facemarks_3d"])
+render_result(
+    meshes["original"],
+    [coords for coords in prediction_result["facemarks_3d"] if coords is not None]
+)
 ```
 
-**Note:** Requires a graphical display. In headless environments (unset `DISPLAY` or a virtual `:99` display) it prints a message and returns without rendering.
+**Note:** Requires a graphical display. In headless environments (unset `DISPLAY` or a virtual `:99` display) it prints a message and returns without rendering. Pass only concrete landmark coordinates — filter out the `None` entries from `facemarks_3d` first.
 
 ## How It Works
 
