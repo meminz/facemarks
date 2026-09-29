@@ -6,6 +6,7 @@ from ._geometry_processing import _hpr_mesh_based, _perspective_rays_directions
 from ._triangles import TRIANGLES
 
 NUM_FACEMARKS = 478
+DEFAULT_FACEMARKS = 468  # MediaPipe's photo-only iris landmarks (468-477) are excluded by default, but can be requested explicitly
 IMG_SIZE = 720
 
 
@@ -32,7 +33,7 @@ def _setup_offscreen_viewer(textured_mesh):
     return vis, ctr, intr_mat
 
 
-def _hidden_point_removal(detection_result):
+def _hidden_point_removal(detection_result, landmark_ids):
     mp_mesh = o3d.t.geometry.TriangleMesh(
         o3d.core.Tensor([[p.x,-p.y,-p.z] for p in detection_result.face_landmarks[0]], dtype=o3d.core.Dtype.Float32),
         o3d.core.Tensor(TRIANGLES)
@@ -40,6 +41,7 @@ def _hidden_point_removal(detection_result):
     mp_mesh.translate( - mp_mesh.get_axis_aligned_bounding_box().get_center().numpy()  )
 
     visible_points = _hpr_mesh_based(mp_mesh, [0,0,1])
+    visible_points = visible_points[np.isin(visible_points, landmark_ids)]
 
     landmarks = [ [p.x,p.y,0] for p in detection_result.face_landmarks[0] ]
     landmarks_2d = np.asarray(landmarks)[visible_points]
@@ -57,8 +59,8 @@ def _world_rays_from_camera(camera_r, landmarks_2d, intr_mat, extr_mat):
     return camera_pos, world_rays
 
 
-def _project_views(detector, textured_mesh, camera_rots):
-    views = {i:[] for i in range(NUM_FACEMARKS)}
+def _project_views(detector, textured_mesh, camera_rots, landmark_ids):
+    views = {i:[] for i in landmark_ids}
     successful_detections = 0
 
     vis, ctr, intr_mat = _setup_offscreen_viewer(textured_mesh)
@@ -76,7 +78,7 @@ def _project_views(detector, textured_mesh, camera_rots):
         successful_detections += 1
 
         # HPR
-        visible_points, landmarks_2d = _hidden_point_removal(detection_result)
+        visible_points, landmarks_2d = _hidden_point_removal(detection_result, landmark_ids)
 
         vis.update_renderer()
         extr_mat = ctr.convert_to_pinhole_camera_parameters().extrinsic
