@@ -6,7 +6,7 @@ A Python package for detecting and analyzing 3D facial landmarks (facemarks) fro
 ## Features
 
 - **Mesh Import**: Import 3D facial meshes with texture support via Open3D
-- **3D Landmark Prediction**: Detect up to 478 facial landmarks in 3D space using multi-view projection and raycasting
+- **3D Landmark Prediction**: Detect up to 468 facial landmarks in 3D space using multi-view projection and raycasting
 - **JSON Export**: Save predicted facemarks with normalized coordinates and closest vertex indices
 - **Visualization**: Render meshes with detected landmarks overlaid
 - **Robust Detection**: Uses multiple camera projections for accurate 3D reconstruction
@@ -85,18 +85,19 @@ meshes = import_mesh_and_setup("face_model.obj")
 
 ---
 
-### `predict(meshes, projections=100)`
+### `predict(meshes, projections=100, landmarks=tuple(range(468)))`
 
-Predicts 3D facial landmarks from the provided mesh data using multi-view projection and raycasting. Detects up to 478 facial landmarks in 3D space; landmarks that could not be reconstructed are kept as `None` so every result is a fixed 478-slot list.
+Predicts 3D facial landmarks from the provided mesh data using multi-view projection and raycasting. By default it computes all 468 face landmarks; landmarks that could not be reconstructed are kept as `None` so every result is a fixed-length list.
 
 **Parameters:**
 - `meshes` (dict): Mesh data object returned from `import_mesh_and_setup()`
 - `projections` (int, optional): Number of camera projections to use for landmark detection. Default is 100. More projections increase accuracy but take longer.
+- `landmarks` (iterable of int, optional): Indices of the landmarks to reconstruct, anywhere in `0..477`. Defaults to `tuple(range(468))` - all 468 face landmarks (MediaPipe's 10 iris landmarks, indices 468-477, are excluded unless you list them explicitly). Only the requested landmarks are computed, so passing a small subset is faster.
 
 **Returns:**
 - `dict` (or `None`): Dictionary containing:
-  - `"facemarks_3d"` (list): 478 entries — 3D coordinates `[x, y, z]`, or `None` where a landmark could not be reconstructed
-  - `"closest_vertex_ids"` (list): Index of the closest mesh vertex to each landmark (same length, `None` in the same slots). Position `n` always refers to facemark `n`.
+  - `"facemarks_3d"` (list): 3D coordinates `[x, y, z]` for each landmark, or `None` where a landmark could not be reconstructed
+  - `"closest_vertex_ids"` (list): Index of the closest mesh vertex to each landmark (same length, `None` in the same slots). Position `n` always refers to facemark `n`. The list length is `max(index) + 1` - 468 for the default full face.
 
 **Example:**
 ```python
@@ -104,9 +105,12 @@ prediction_result = predict(meshes, projections=150)
 if prediction_result is not None:
     landmarks = prediction_result["facemarks_3d"]
     vertex_ids = prediction_result["closest_vertex_ids"]
+
+# Only compute the landmarks you need
+prediction_result = predict(meshes, projections=150, landmarks=(33, 133, 152))
 ```
 
-**Note:** Camera angles are chosen at random, so results vary slightly between runs, and different runs may resolve different subsets of the 478 facemarks. If no projection detects a face, `predict()` prints an error and returns `None`.
+**Note:** Camera angles are chosen at random, so results vary slightly between runs, and different runs may resolve different subsets of the 468 facemarks. If no projection detects a face, `predict()` prints an error and returns `None`.
 
 ---
 
@@ -128,7 +132,7 @@ Exports predicted facial landmarks to a JSON file with normalized coordinates an
 }
 ```
 
-Both coordinate arrays have one entry per facemark (478). Landmarks that could not be reconstructed are written as `null`, so position `n` always refers to facemark `n`.
+Both coordinate arrays have one entry per landmark - 468 by default, up to 478 if iris landmarks (468-477) are explicitly requested via `predict()`. Landmarks that could not be reconstructed are written as `null`, so position `n` always refers to facemark `n`.
 
 **Example:**
 ```python
@@ -157,7 +161,7 @@ render_result(
 )
 ```
 
-**Note:** Requires a graphical display. In headless environments (unset `DISPLAY` or a virtual `:99` display) it prints a message and returns without rendering. Pass only concrete landmark coordinates — filter out the `None` entries from `facemarks_3d` first.
+**Note:** Requires a graphical display. In headless environments (unset `DISPLAY` or a virtual `:99` display) it prints a message and returns without rendering. Pass only concrete landmark coordinates - filter out the `None` entries from `facemarks_3d` first.
 
 ## How It Works
 
